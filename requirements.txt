@@ -1,0 +1,35 @@
+blinker==1.7.0
+certifi==2024.8.30
+charset-normalizer==3.3.2
+click==8.1.7
+colorama==0.4.6
+dnspython==2.6.1
+Flask==3.0.3
+idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+pymongo==4.8.0
+python-dotenv==1.0.1
+requests==2.32.3
+urllib3==2.2.2
+Werkzeug==3.0.4
+# --- Enhancements for advanced dashboard ---
+# Data Visualization
+plotly
+matplotlib
+# Real-time updates
+Flask-SocketIO
+# Authentication
+Flask-Login
+Flask-Bcrypt
+# Security
+Flask-Talisman
+Flask-Limiter
+# Testing/Development
+pytest
+Flask-DebugToolbar
+# CORS
+Flask-CORS
+# API development
+Flask-RESTful

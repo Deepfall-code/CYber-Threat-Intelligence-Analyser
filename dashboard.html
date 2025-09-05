@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cyber Threat Intelligence Analyser</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+
+   
+    <!-- Load official Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>    
+
+</head>
+<body class="text-light">
+    <div class="container py-5">
+
+        <!-- Enhancement 1: Renamed dashboard header to 'Cyber Threat Analyser' -->
+        <h1 class="text-center mb-4">Cyber Threat Analyser</h1>
+
+        <!-- Input Form -->
+        <form id="threatForm" class="mb-4">
+            <div class="input-group">
+                <input type="text" class="form-control" id="query" placeholder="Enter IP or Domain..." required />
+                <button type="submit" class="btn btn-danger">Analyze</button>
+            </div>
+        </form>
+
+        <!-- Threat Info Results -->
+        <div id="results" class="bg-secondary p-4 rounded shadow">
+            <h3>🔍 Threat Information</h3>
+            <div id="threatOutput">No results yet...</div>
+
+            <!-- Tagging Section -->
+            <div id="taggingSection" class="mt-4" style="display:none;">
+                <h5>🏷️ Tag IOC</h5>
+                <select id="tagSelect" class="form-select w-50 mb-2">
+                    <option value="" selected>Select a tag</option>
+                    <option value="internal">Internal</option>
+                    <option value="external">External</option>
+                    <option value="false_positive">False Positive</option>
+                    <option value="review">Require Review</option>
+                </select>
+                <button id="tagButton" class="btn btn-warning">Apply Tag</button>
+                <div id="tagStatus" class="mt-2"></div>
+            </div>
+
+            <!-- Export Section -->
+            <div id="exportSection" class="mt-4" style="display:none;">
+                <h5>📤 Export Data</h5>
+                <button id="exportCSV" class="btn btn-success me-2">Export CSV</button>
+                <button id="exportJSON" class="btn btn-success">Export JSON</button>
+                <div id="exportStatus" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="mt-5">
+            <h4 class="text-info">📊 Threat Category Chart</h4>
+            <canvas id="categoryChart" height="100"></canvas>
+        </div>
+
+    </div>
+
+    <!-- Real-time Threat Alert Pop-up (top-right corner, detailed) -->
+    <div id="threatAlert" class="alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 mt-3 me-3" style="display:none; z-index: 2000; min-width: 350px; max-width: 420px; box-shadow: 0 0 16px 2px #d500f9, 0 0 8px 2px #00e676;" role="alert">
+        <div id="threatAlertMsg"></div>
+        <button type="button" class="btn-close" aria-label="Close" onclick="document.getElementById('threatAlert').style.display='none';"></button>
+    </div>
+
+    <script>
+        // Grab elements
+        const threatForm = document.getElementById('threatForm');
+        const queryInput = document.getElementById('query');
+        const threatOutput = document.getElementById('threatOutput');
+        const taggingSection = document.getElementById('taggingSection');
+        const tagSelect = document.getElementById('tagSelect');
+        const tagButton = document.getElementById('tagButton');
+        const tagStatus = document.getElementById('tagStatus');
+        const exportSection = document.getElementById('exportSection');
+        const exportCSV = document.getElementById('exportCSV');
+        const exportJSON = document.getElementById('exportJSON');
+        const exportStatus = document.getElementById('exportStatus');
+        const threatAlert = document.getElementById('threatAlert');
+        const threatAlertMsg = document.getElementById('threatAlertMsg');
+
+        let currentIOCId = null;
+
+        // Submit form event: Fetch threat lookup
+        threatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            threatOutput.textContent = 'Loading...';
+            taggingSection.style.display = 'none';
+            exportSection.style.display = 'none';
+            tagStatus.textContent = '';
+            exportStatus.textContent = '';
+
+            try {
+                const response = await fetch(`/api/threat_lookup?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentIOCId = data.ioc_id;
+                    displayThreatData(data);
+                    taggingSection.style.display = 'block';
+                    exportSection.style.display = 'block';
+                } else {
+                    threatOutput.textContent = data.error || 'Error fetching threat data.';
+                }
+            } catch (error) {
+                threatOutput.textContent = 'Network error or server not responding.';
+            }
+        });
+
+        // Display threat data in the results section
+        function displayThreatData(data) {
+            const { ioc, level, threat_score, category_counts, vt_data, abuse_data } = data;
+            threatOutput.innerHTML = `
+                <p><strong>IOC:</strong> ${ioc}</p>
+                <p><strong>Level:</strong> ${level}</p>
+                <p><strong>Threat Score:</strong> ${threat_score}</p>
+                <h5>📂 Category Counts</h5>
+                <ul class="list-group list-group-flush mb-3 text-light">
+                    ${Object.entries(category_counts).map(([key, value]) => `
+                        <li class="list-group-item bg-dark text-capitalize d-flex justify-content-between align-items-center">
+                            ${key.replace(/_/g, ' ')} 
+                            <span class="badge bg-danger rounded-pill">${value}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            <h5>🦠 VirusTotal Data</h5>
+            <ul class="list-group list-group-flush mb-3 text-light">
+                <li class="list-group-item bg-dark">Malicious: ${vt_data["Malicious"] ?? 0}</li>
+                <li class="list-group-item bg-dark">Suspicious: ${vt_data["Suspicious"] ?? 0}</li>
+                <li class="list-group-item bg-dark">Harmless: ${vt_data["Harmless"] ?? 0}</li>
+                <li class="list-group-item bg-dark">Undetected: ${vt_data["Undetected"] ?? 0}</li>
+                <li class="list-group-item bg-dark">Reputation: ${vt_data["Reputation"] ?? "N/A"}</li>
+            </ul>
+            <h6>Categories:</h6>
+            <ul class="list-group list-group-horizontal flex-wrap mb-3">
+                ${
+                  vt_data["Categories"]
+                    ? Object.entries(vt_data["Categories"])
+                        .map(([key, value]) => `<li class="list-group-item bg-secondary text-light me-2 mb-2">${key}: ${value}</li>`)
+                        .join("")
+                    : "<li class='list-group-item bg-dark'>N/A</li>"
+                }
+            </ul>
+
+            <h5>🚨 AbuseIPDB Data</h5>
+            <ul class="list-group list-group-flush mb-3 text-light">
+                <li class="list-group-item bg-dark">Abuse Confidence Score: ${abuse_data["Abuse Confidence Score"] ?? 0}</li>
+                <li class="list-group-item bg-dark">ISP: ${abuse_data["ISP"] ?? "N/A"}</li>
+                <li class="list-group-item bg-dark">Domain: ${abuse_data["Domain"] ?? "N/A"}</li>
+                <li class="list-group-item bg-dark">Usage Type: ${abuse_data["Usage Type"] ?? "N/A"}</li>
+                <li class="list-group-item bg-dark">Country Code: ${abuse_data["Country Code"] ?? "N/A"}</li>
+                <li class="list-group-item bg-dark">Total Reports: ${abuse_data["Total Reports"] ?? 0}</li>
+                <li class="list-group-item bg-dark">Last Reported At: ${abuse_data["Last Reported At"] ?? "N/A"}</li>
+            </ul>
+            `;
+        }
+
+        // Tag IOC event
+        tagButton.addEventListener('click', async () => {
+            const tag = tagSelect.value;
+            if (!tag || !currentIOCId) {
+                tagStatus.textContent = 'Please select a tag and perform a lookup first.';
+                return;
+            }
+            tagStatus.textContent = 'Applying tag...';
+
+            try {
+                const response = await fetch('/api/tag_ioc', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ioc_id: currentIOCId, tag })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    tagStatus.textContent = data.message || 'Tag applied successfully.';
+                } else {
+                    tagStatus.textContent = data.error || 'Failed to apply tag.';
+                }
+            } catch (error) {
+                tagStatus.textContent = 'Network error or server not responding.';
+            }
+        });
+
+        // Export buttons event handlers
+        exportCSV.addEventListener('click', () => exportData('csv'));
+        exportJSON.addEventListener('click', () => exportData('json'));
+
+        async function exportData(format) {
+            if (!currentIOCId) {
+                exportStatus.textContent = 'Perform a lookup first.';
+                return;
+            }
+            exportStatus.textContent = `Exporting ${format.toUpperCase()}...`;
+
+            try {
+                const response = await fetch(`/api/export?ioc_id=${currentIOCId}&format=${format}`);
+                if (!response.ok) {
+                    const data = await response.json();
+                    exportStatus.textContent = data.error || 'Export failed.';
+                    return;
+                }
+                if (format === 'json') {
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'threat_report.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    exportStatus.textContent = 'Exported JSON successfully.';
+                } else if (format === 'csv') {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'threat_report.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    exportStatus.textContent = 'Exported CSV successfully.';
+                }
+            } catch (error) {
+                exportStatus.textContent = 'Network error or server not responding.';
+            }
+        }
+
+        // Chart.js setup for threat category chart
+        const ctx = document.getElementById('categoryChart').getContext('2d');
+        let categoryChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Threat Scores',
+                    data: [],
+                    backgroundColor: [], // Will be set dynamically
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Threat Score (0-100)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Fetch latest threat data for chart
+        async function fetchThreatData() {
+            try {
+                const response = await fetch('/api/threat-data');
+                const data = await response.json();
+                if (response.ok) {
+                    categoryChart.data.labels = data.ips;
+                    categoryChart.data.datasets[0].data = data.scores;
+                    // Color coding based on level
+                    const colorMap = {
+                        'Low': 'rgba(0, 230, 118, 0.7)',      // Green
+                        'Medium': 'rgba(255, 235, 59, 0.7)',  // Yellow
+                        'High': 'rgba(255, 61, 0, 0.7)',      // Orange-Red
+                        'Critical': 'rgba(213, 0, 249, 0.7)', // Purple
+                        'N/A': 'rgba(108, 117, 125, 0.7)'     // Gray
+                    };
+                    categoryChart.data.datasets[0].backgroundColor = (data.levels || []).map(lvl => colorMap[lvl] || colorMap['N/A']);
+                    categoryChart.update();
+                }
+            } catch (error) {
+                console.error('Error fetching threat data for chart:', error);
+            }
+        }
+
+        fetchThreatData();
+        setInterval(fetchThreatData, 60000); // Refresh chart every 30 seconds
+
+        // Real-time Threat Alert Logic
+        let lastSeenIOC = null;
+        async function pollForNewThreat() {
+            try {
+                const response = await fetch('/api/threat-data');
+                const data = await response.json();
+                if (response.ok && data.ips && data.ips.length > 0) {
+                    const latestIOC = data.ips[0];
+                    if (lastSeenIOC !== null && latestIOC !== lastSeenIOC && latestIOC !== "No analysis yet" && latestIOC !== "No data available") {
+                        // Use level and description from the API
+                        const level = data.levels && data.levels[0] ? data.levels[0] : 'N/A';
+                        const description = data.descriptions && data.descriptions[0] ? data.descriptions[0] : '';
+                        const score = data.scores && data.scores[0] ? data.scores[0] : '';
+                        let badgeClass = '';
+                        if (level === 'Low') badgeClass = 'bg-low';
+                        else if (level === 'Medium') badgeClass = 'bg-medium';
+                        else if (level === 'High') badgeClass = 'bg-high';
+                        else if (level === 'Critical') badgeClass = 'bg-critical';
+                        threatAlertMsg.innerHTML = `
+                            <div class="mb-2"><strong>New Threat Detected</strong></div>
+                            <div><b>IOC:</b> <span class="text-info">${latestIOC}</span></div>
+                            <div><b>Threat Score:</b> <span class="fw-bold">${score}</span></div>
+                            <div><b>Level:</b> <span class="badge ${badgeClass} text-dark" style="font-size:1rem;">${level}</span></div>
+                            <div class="mt-2" style="font-size:0.97em; white-space:pre-line;">${description}</div>
+                        `;
+                        threatAlert.style.display = 'block';
+                    }
+                    lastSeenIOC = latestIOC;
+                }
+            } catch (e) {
+                // Ignore polling errors
+            }
+        }
+        setInterval(pollForNewThreat, 5000); // Poll every 5 seconds
+        pollForNewThreat();
+    </script>
+</body>
+</html>

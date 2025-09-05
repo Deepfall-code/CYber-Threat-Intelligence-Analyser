@@ -1,0 +1,184 @@
+/* style.css - Revised Color Scheme */
+
+/* General body styles */
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url('image/background.jpg.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+/* Container padding */
+.container {
+    max-width: 900px;
+    background-color: rgba(28, 28, 28, 0.85);
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 0 20px rgba(169, 56, 225, 0.3);
+}
+
+/* Input box styling */
+#query {
+    background-color: rgba(44, 44, 44, 0.8);
+    border: 1px solid #6a3093;
+    color: #eee;
+    transition: all 0.3s ease;
+}
+
+/* Input focus */
+#query:focus {
+    border-color: #9c27b0;
+    box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
+    background-color: rgba(68, 68, 68, 0.8);
+    color: #fff;
+}
+
+/* Buttons */
+.btn-danger {
+    background-color: #9c27b0;
+    border-color: #9c27b0;
+    transition: all 0.3s ease;
+}
+.btn-danger:hover, .btn-danger:focus {
+    background-color: #7b1fa2;
+    border-color: #7b1fa2;
+    box-shadow: 0 0 12px rgba(156, 39, 176, 0.7);
+}
+
+.btn-warning {
+    background-color: #ff9800;
+    border-color: #ff9800;
+    color: #222;
+    transition: all 0.3s ease;
+}
+.btn-warning:hover, .btn-warning:focus {
+    background-color: #f57c00;
+    border-color: #f57c00;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(255, 152, 0, 0.7);
+}
+
+.btn-success {
+    background-color: #4caf50;
+    border-color: #4caf50;
+    transition: all 0.3s ease;
+}
+.btn-success:hover, .btn-success:focus {
+    background-color: #388e3c;
+    border-color: #388e3c;
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
+}
+
+/* Results container */
+#results {
+    border-radius: 0.5rem;
+    background-color: rgba(44, 44, 44, 0.8);
+    box-shadow: 0 0 15px rgba(169, 56, 225, 0.4);
+    border: 1px solid #4a148c;
+}
+
+/* List groups inside results */
+#results .list-group-item {
+    background-color: rgba(38, 38, 38, 0.9);
+    color: #eee;
+    border-bottom: 1px solid #4a148c;
+}
+
+#results .list-group-item.bg-secondary {
+    background-color: #6a3093 !important;
+}
+
+/* Vibrant Badge colors for threat categories */
+.badge.bg-low {
+    background-color: #4caf50 !important; /* Green */
+    color: #fff !important;
+}
+.badge.bg-medium {
+    background-color: #ffc107 !important; /* Amber */
+    color: #222 !important;
+}
+.badge.bg-high {
+    background-color: #ff9800 !important; /* Orange */
+    color: #fff !important;
+}
+.badge.bg-critical {
+    background-color: #e91e63 !important; /* Pink */
+    color: #fff !important;
+}
+.badge.bg-danger {
+    background-color: #9c27b0 !important; /* Purple */
+}
+
+.badge.bg-secondary {
+    background-color: #673ab7 !important; /* Deep Purple */
+}
+
+/* Tagging section styling */
+#taggingSection select.form-select {
+    background-color: rgba(68, 68, 68, 0.8);
+    border: 1px solid #6a3093;
+    color: #eee;
+}
+
+/* Export section styling */
+#exportSection button {
+    min-width: 110px;
+}
+
+/* Chart canvas container */
+#categoryChart {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-radius: 0.5rem;
+    padding: 15px;
+    border: 1px solid #6a3093;
+    box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+}
+
+#categoryPieChart {
+    background-color: rgba(35, 35, 35, 0.9);
+    border-radius: 0.5rem;
+    border: 1px solid #6a3093;
+    box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+}
+
+/* Headings */
+h1, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: #b388ff;
+}
+
+/* Scrollbar styling */
+#results {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar */
+#results::-webkit-scrollbar {
+    width: 8px;
+}
+#results::-webkit-scrollbar-track {
+    background: #2c2c2c;
+}
+#results::-webkit-scrollbar-thumb {
+    background: #6a3093;
+    border-radius: 4px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+    #taggingSection select.form-select {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+    #exportSection button {
+        width: 48%;
+        margin-bottom: 8px;
+    }
+    .container {
+        padding: 15px;
+    }
+}
